@@ -26,6 +26,12 @@ def selection_menu():
     subject_text_4 = button_font.render(f'PHYSICS', True, WHITE, BLACK)
     subject_text_5 = button_font.render(f'COMPUTER SCIENCE', True, WHITE, BLACK)
 
+    level_text_1 = button_font.render(f'ELEMENTARY', True, WHITE, BLACK)
+    level_text_2 = button_font.render(f'MIDDLE SCHOOL', True, WHITE, BLACK)
+    level_text_3 = button_font.render(f'HIGH SCHOOL', True, WHITE, BLACK)
+    level_text_4 = button_font.render(f'UNDERGRAD', True, WHITE, BLACK)
+    level_text_5 = button_font.render(f'GRAD', True, WHITE, BLACK)
+
     # cursor
     cursor = pygame.transform.scale(pygame.image.load("images/cursor.webp"), (100, 100))
     # Main display
@@ -47,6 +53,8 @@ def selection_menu():
     start = False
     go_to_next_section = False
     cursor_position = 0
+    subject_position = 0
+    difficulty_position = 0 
 
     while True:
         for event in pygame.event.get():              
@@ -56,14 +64,17 @@ def selection_menu():
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_UP:
-                    cursor_position += 1
+                    cursor_position -= 1
                     print("UP")
                 if event.key == pygame.K_DOWN:
-                    cursor_position -= 1
+                    cursor_position += 1
                 if event.key == pygame.K_SPACE:
                     print("SSS")
                     if go_to_next_section == True:
                         start = True
+                        difficulty_position = cursor_position % 5
+                    else:
+                        subject_position = cursor_position % 5
                     go_to_next_section = True
                     print("ENTER")
 
@@ -73,15 +84,31 @@ def selection_menu():
         point_list = update_points(point_list)
         # update screen
         DISPLAYSURF.fill(BLACK)
+        
         for point in point_list:
             pygame.draw.circle(DISPLAYSURF, WHITE, point, 1)
+        if go_to_next_section:
+            DISPLAYSURF.blit(cursor, (700, 100 * ((cursor_position % 5) + 1) - 25))
+        else:
+            DISPLAYSURF.blit(cursor, (0, 100 * ((cursor_position % 5) + 1) - 25))
+        
         DISPLAYSURF.blit(subject_text_1, (100, 100))
         DISPLAYSURF.blit(subject_text_2, (100, 200))
         DISPLAYSURF.blit(subject_text_3, (100, 300))
         DISPLAYSURF.blit(subject_text_4, (100, 400))
         DISPLAYSURF.blit(subject_text_5, (100, 500))
+        if go_to_next_section:
+            DISPLAYSURF.blit(level_text_1, (800, 100))
+            DISPLAYSURF.blit(level_text_2, (800, 200))
+            DISPLAYSURF.blit(level_text_3, (800, 300))
+            DISPLAYSURF.blit(level_text_4, (800, 400))
+            DISPLAYSURF.blit(level_text_5, (800, 500))
         pygame.display.update()
         FramePerSec.tick(FPS)
+    if start:
+        return (subject_position, difficulty_position)
+    else:
+        return (-1, -1)
 
 def update_points(points):
     new_points = []
