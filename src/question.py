@@ -1,9 +1,6 @@
 from openai import OpenAI
 
-client = OpenAI(api_key='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') 
-
-Deficulity = "elementary"
-Subject = "computer science"
+client = OpenAI(api_key='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') 
 
 def generate_question(Deficulity, Subject):
     messages = [{"role": "system", "content": f"You are an intelligent assistant. This is for a {Deficulity} student. Generate a multiple choice question in {Subject} and answer in the format: Question? A) Option 1 B) Option 2 C) Option 3 D) Option 4. Indicate the correct answer."}]
@@ -21,6 +18,7 @@ def generate_question(Deficulity, Subject):
     messages.append({"role": "assistant", "content": reply})
     # print(f"ChatGPT: {reply}") 
     # messages.append({"role": "assistant", "content": reply})
+    return question, option_a, option_b, option_c, option_d, correct_answer
 
 #messages = [{"role": "system", "content": "You are an intelligent assistant. This is for a highschool student. Generate a multiple-choice question in mathematics and answer in the format: Question? A) Option 1 B) Option 2 C) Option 3 D) Option 4. Indicate the correct answer."}]
 
@@ -57,6 +55,3 @@ def parse_reply(reply):
         # If parsing fails due to unexpected format, log an error and return None values
         print("Failed to parse the reply correctly.")
         return None, None, None, None, None, None
-
-
-generate_question(Deficulity, Subject)

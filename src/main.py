@@ -13,8 +13,11 @@ def main():
         if level_state == (-1, -1):
             return
         print(level_state)
+    
+       
     else:
         return
+    
  
 if __name__ == "__main__":
     main()

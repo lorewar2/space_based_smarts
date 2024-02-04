@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import random
+import question
 # map class (20 x 20 cells)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -64,17 +65,18 @@ class Player:
         self.ship_array.append(Ship("images/ship2.webp", (4, 9), 6))
         self.ship_array.append(Ship("images/ship3.webp", (5, 9), 6))
 
-def update_question():
+def update_question(subject_diff, level_diff):
     # update the current question
-    return
+    q, option_a, option_b, option_c, option_d, correct_answer = question.generate_question(subject_diff, level_diff)
+    answers = [option_a, option_b, option_c, option_d]
+    return q, answers, correct_answer
 
 # input difficulty
 def run_map(subject_diff, level_diff):
     # make the point list for stars background
-    question = "what is this?"
-    answer = ["a", "b", "c", "d"]
+    question = "what is the differentiation of x square?"
+    answer = ["a) 2x", "b) x", "c) x cube", "d) 99x"]
     correct_answer = 0 # 0~3
-
     point_list = []
     for i in range(0, 500):
         x = random.randint(0, SCREEN_WIDTH)
