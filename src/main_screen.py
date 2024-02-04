@@ -13,10 +13,16 @@ pygame.init()
 # initiale screen
 font1 = pygame.font.SysFont(None, 48)
 font2 = pygame.font.SysFont(None, 32)
-font3 = pygame.font.SysFont(None, 16)
+font3 = pygame.font.SysFont(None, 20)
 player_turn_text = font1.render(f'PLAYER TURN', True, GREEN, BLACK)
+gameover_text = font1.render(f'GAME OVER', True, RED, BLACK)
 player_action_move_text = font1.render(f'MOVE/ATTACK', True, WHITE, BLACK)
 enemy_turn_text = font1.render(f'ENEMY TURN', True, RED, BLACK)
+cursor = pygame.transform.scale(pygame.image.load("images/cursor.webp"), (100, 100))
+ship_side = pygame.transform.rotate(pygame.transform.scale(pygame.image.load("images/ship2.webp"), (200, 200)), 270)
+alien_side = pygame.transform.scale(pygame.image.load("images/alien_side.png"), (200, 200))
+explosion_large = pygame.transform.scale(pygame.image.load("images/explosion.png"), (200, 200))
+explosion_small = pygame.transform.scale(pygame.image.load("images/explosion.png"), (100, 100))
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 640
@@ -45,7 +51,9 @@ class Enemy:
         self.ship_array.append(Ship("images/alien1.webp", (2, 2), 3))
         self.ship_array.append(Ship("images/alien2.webp", (5, 4), 2))
         self.ship_array.append(Ship("images/alien3.webp", (2, 3), 4))
-        self.ship_array.append(Ship("images/alien4.webp", (8, 2), 3))
+        self.ship_array.append(Ship("images/alien4.webp", (9, 0), 3))
+        self.ship_array.append(Ship("images/alien2.webp", (1, 0), 3))
+        self.ship_array.append(Ship("images/alien3.webp", (2, 9), 3))
 
 # player class
 class Player:
@@ -56,67 +64,230 @@ class Player:
         self.ship_array.append(Ship("images/ship2.webp", (4, 9), 6))
         self.ship_array.append(Ship("images/ship3.webp", (5, 9), 6))
 
+def update_question():
+    # update the current question
+    return
+
 # input difficulty
 def run_map(subject_diff, level_diff):
+    # make the point list for stars background
+    question = "what is this?"
+    answer = ["a", "b", "c", "d"]
+    correct_answer = 0 # 0~3
+
+    point_list = []
+    for i in range(0, 500):
+        x = random.randint(0, SCREEN_WIDTH)
+        y = random.randint(0, SCREEN_HEIGHT)
+        point_list.append((x,y))
     player_turn = True
     ship_number = 0
     cursor_pos = 0
+    fight_number = 0
     cursor_valid_pos = (0, 0)
+    lock = False
+    game_over = False
     cursor_locked = False
+    attacked_ship = 0
+    attacker_player = True
     select_location_moving = False
     player = Player()
     enemy = Enemy()
     current_pos = player.ship_array[ship_number].current_pos
     while True:
-        for event in pygame.event.get():           
-            if event.type == QUIT:
-                pygame.quit()
-                break
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_UP:
-                    cursor_pos += 1
-                if event.key == pygame.K_DOWN:
-                    cursor_pos -= 1
+        if game_over:
+            DISPLAYSURF.fill(BLACK)
+            DISPLAYSURF.blit(gameover_text, (SCREEN_WIDTH / 2.5, SCREEN_HEIGHT / 2))
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    break
+        else:
+            for event in pygame.event.get():           
+                if event.type == QUIT:
+                    pygame.quit()
+                    break
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_UP:
+                        cursor_pos += 1
+                    if event.key == pygame.K_DOWN:
+                        cursor_pos -= 1
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    attack, attacked_ship = space_check_move (cursor_valid_pos, player, enemy, ship_number)
-                    if ship_number >= len(player.ship_array) - 1:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        if lock == False:
+                            attack, attacked_ship = space_check_move (cursor_valid_pos, player, enemy, ship_number)
+                            if attack == True:
+                                lock = True
+                                attacker_player = True
+                            if ship_number >= len(player.ship_array) - 1:
+                                ship_number = 0
+                                current_pos = enemy.ship_array[ship_number].current_pos
+                                player_turn = False
+                            elif 0 == len(player.ship_array):
+                                lock = True
+                                game_over = True
+                            else:
+                                ship_number += 1
+                                current_pos = player.ship_array[ship_number].current_pos
+                        else:
+                            fight_number += 1
+            # draw the new image
+            draw_everything(current_pos, player, enemy)
+            if not lock:
+                if player_turn:
+                    draw_player_turn_stuff()
+                    valid_moves = get_valid_moves(current_pos, player_turn, player, enemy)
+                    cursor_valid_pos = draw_grids_on_valid_moves(valid_moves, current_pos, cursor_pos)
+                else:
+                    DISPLAYSURF.blit(enemy_turn_text, (0, 0))
+                    # wait 1 second
+                    # do action
+                    if ship_number < len(enemy.ship_array):
+                        attack, attacked_ship = enemy_move_attack(current_pos, player, enemy, ship_number)
+                    pygame.display.update() 
+                    pygame.time.wait(1000)
+                    if attack == True:
+                        lock = True
+                        attacker_player = False
+                    if ship_number >= len(enemy.ship_array) - 1:
                         ship_number = 0
-                        current_pos = enemy.ship_array[ship_number].current_pos
-                        player_turn = False
+                        current_pos = player.ship_array[ship_number].current_pos
+                        player_turn = True
+                    elif 0 == len(enemy.ship_array):
+                                lock = True
+                                game_over = True
                     else:
                         ship_number += 1
-                        current_pos = player.ship_array[ship_number].current_pos
-        # draw the new image
-        draw_everything(current_pos, player, enemy)  
-        if player_turn:
-            draw_player_turn_stuff()
-            valid_moves = get_valid_moves(current_pos, player_turn, player, enemy)
-            cursor_valid_pos = draw_grids_on_valid_moves(valid_moves, current_pos, cursor_pos)
-        else:
-            DISPLAYSURF.blit(enemy_turn_text, (0, 0))
-            # wait 1 second
-            pygame.time.wait(1000)
-            # do action
-            enemy_move_attack(current_pos, player, enemy, ship_number)
-            if ship_number >= len(enemy.ship_array) - 1:
-                ship_number = 0
-                current_pos = player.ship_array[ship_number].current_pos
-                player_turn = True
+                        current_pos = enemy.ship_array[ship_number].current_pos
+            # update this
+            if lock == True and game_over == False:
+                if attacker_player:
+                    done, damage, point_list = draw_player_fire_question(question, answer, correct_answer, point_list, cursor_pos, fight_number)
+                    if done == True:
+                        # make the hit player damaged or destroy if health is low
+                        if damage >= enemy.ship_array[attacked_ship].hp:
+                            print("deleted")
+                            del enemy.ship_array[attacked_ship]
+                        else:
+                            enemy.ship_array[attacked_ship].hp -= damage
+                        fight_number = 0
+                        lock = False
+
+                else:
+                    done, damage, point_list = draw_enemy_fire_question(question, answer, correct_answer, point_list, cursor_pos, fight_number)
+                    # make the hit player damaged or destroy if health is low
+                    if done == True:
+                        if damage >= player.ship_array[attacked_ship].hp:
+                            print("deleted")
+                            del player.ship_array[attacked_ship]
+                        else:
+                            player.ship_array[attacked_ship].hp -= damage
+                            fight_number = 0
+                        lock = False
             else:
-                ship_number += 1
-                current_pos = enemy.ship_array[ship_number].current_pos
-        # update this
-        
-        pygame.display.update()
+                pygame.display.update()
 
     if start:
         return True
     else:
         return False
+    
+def update_points(points):
+    new_points = []
+    for point_x, point_y in points:
+        if point_x < 0:
+            point_x = point_x + SCREEN_WIDTH
+            point_y = random.randint(0, SCREEN_WIDTH)
+            new_points.append((point_x, point_y))
+        else:
+            point_x = point_x - 2
+            new_points.append((point_x, point_y))
+    return new_points
+
+def draw_enemy_fire_question(question, answer, correct_answer, point_list, cursor_position, fight_number):
+    point_list = update_points(point_list)
+    done = False
+    damage = 2
+    # draw a blank layer
+    DISPLAYSURF.fill(BLACK)
+    
+    for point in point_list:
+        pygame.draw.circle(DISPLAYSURF, WHITE, point, 1)
+    # draw the enemy and the player
+    DISPLAYSURF.blit(ship_side, (900, 100))
+    DISPLAYSURF.blit(alien_side, (200, 200))
+    # display the question and answers
+    DISPLAYSURF.blit(font2.render(question, True, WHITE, BLACK), (100, 330))
+    DISPLAYSURF.blit(font2.render(answer[0], True, WHITE, BLACK), (100, 380))
+    DISPLAYSURF.blit(font2.render(answer[1], True, WHITE, BLACK), (100, 430))
+    DISPLAYSURF.blit(font2.render(answer[2], True, WHITE, BLACK), (100, 480))
+    DISPLAYSURF.blit(font2.render(answer[3], True, WHITE, BLACK), (100, 530))
+    # display the cursor
+    print(cursor_position)
+    DISPLAYSURF.blit(cursor, (0, 50 * ((cursor_position % 4) + 1) + 285))
+    if (cursor_position % 4) == correct_answer and fight_number > 0:
+        print("correct")
+        DISPLAYSURF.blit(font1.render("CORRECT", True, GREEN, BLACK), (500, 530)) 
+        DISPLAYSURF.blit(explosion_small, (900, 100))
+        pygame.display.update()
+        pygame.time.wait(1000)
+        done = True
+        damage = 1
+    elif fight_number > 0:
+        print("wrong")
+        DISPLAYSURF.blit(font1.render("WRONG", True, RED, BLACK), (500, 530))
+        DISPLAYSURF.blit(explosion_large, (900, 100))
+        pygame.display.update()
+        pygame.time.wait(1000)
+        done = True
+        damage = 2
+    pygame.display.update()
+    return done, damage, point_list
+
+def draw_player_fire_question(question, answer, correct_answer, point_list, cursor_position, fight_number):
+    point_list = update_points(point_list)
+    done = False
+    damage = 2
+    # draw a blank layer
+    DISPLAYSURF.fill(BLACK)
+    
+    for point in point_list:
+        pygame.draw.circle(DISPLAYSURF, WHITE, point, 1)
+    # draw the enemy and the player
+    DISPLAYSURF.blit(ship_side, (200, 200))
+    DISPLAYSURF.blit(alien_side, (900, 100))
+    # display the question and answers
+    DISPLAYSURF.blit(font2.render(question, True, WHITE, BLACK), (100, 330))
+    DISPLAYSURF.blit(font2.render(answer[0], True, WHITE, BLACK), (100, 380))
+    DISPLAYSURF.blit(font2.render(answer[1], True, WHITE, BLACK), (100, 430))
+    DISPLAYSURF.blit(font2.render(answer[2], True, WHITE, BLACK), (100, 480))
+    DISPLAYSURF.blit(font2.render(answer[3], True, WHITE, BLACK), (100, 530))
+    # display the cursor
+    print(cursor_position)
+    DISPLAYSURF.blit(cursor, (0, 50 * ((cursor_position % 4) + 1) + 285))
+    if (cursor_position % 4) == correct_answer and fight_number > 0:
+        print("correct")
+        DISPLAYSURF.blit(font1.render("CORRECT", True, GREEN, BLACK), (500, 530))
+        DISPLAYSURF.blit(explosion_large, (900, 100))
+        pygame.display.update()
+        pygame.time.wait(1000)
+        done = True
+        damage = 2
+    elif fight_number > 0:
+        print("wrong")
+        DISPLAYSURF.blit(font1.render("WRONG", True, RED, BLACK), (500, 530))
+        DISPLAYSURF.blit(explosion_small, (900, 100))
+        pygame.display.update()
+        pygame.time.wait(1000)
+        done = True
+        damage = 1
+    pygame.display.update()
+    return done, damage, point_list
 
 def enemy_move_attack(current_pos, player, enemy, ship_number):
+    print(len(enemy.ship_array))
     enemy_current_pos = enemy.ship_array[ship_number].current_pos
     attack = False
     attacked_ship = 0
@@ -151,16 +322,7 @@ def draw_player_turn_stuff():
     # draw the player turn
     DISPLAYSURF.blit(player_turn_text, (0, 0))
     # draw the player actions
-    DISPLAYSURF.blit(player_action_move_text, (0, 50))
-    
-    return
-
-def draw_enemy_fire_question():
-
-    return
-
-def draw_player_fire_question():
-
+    DISPLAYSURF.blit(player_action_move_text, (0, 50))    
     return
 
 # change current_position
